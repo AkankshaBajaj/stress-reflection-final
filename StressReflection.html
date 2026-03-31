@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stress Reflection</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 30px;
+}
+h1 { font-size: 17px; font-weight: 800; color: #1e1450; text-align: center; margin-bottom: 4px; }
+.subtitle { font-size: 12px; font-weight: 500; color: #6e5adc; text-align: center; margin-bottom: 14px; max-width: 480px; line-height: 1.5; }
+
+.top-area { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 14px; }
+
+.battery-wrap { display: flex; flex-direction: column; align-items: center; }
+.battery-tip { width: 22px; height: 7px; background: #1e1450; border-radius: 4px 4px 0 0; }
+.battery-outer {
+  width: 54px; height: 100px;
+  border: 3px solid #1e1450; border-radius: 10px;
+  background: #f3f0ff; overflow: hidden; position: relative;
+}
+.battery-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #6e5adc;
+  transition: height 0.8s cubic-bezier(.34,1.56,.64,1), background 0.5s;
+  border-radius: 0 0 7px 7px;
+}
+.battery-pct { font-size: 13px; font-weight: 800; color: #1e1450; margin-top: 8px; }
+.battery-label { font-size: 11px; font-weight: 600; color: #6e5adc; margin-top: 3px; text-align: center; }
+
+.char-wrap { display: flex; flex-direction: column; align-items: center; }
+#speech {
+  background: white; border: 2px solid #c4b5fd; border-radius: 14px;
+  padding: 5px 10px; font-size: 11px; font-weight: 600; color: #1e1450;
+  margin-bottom: 6px; text-align: center; max-width: 210px; position: relative;
+  transition: opacity 0.3s;
+}
+#speech::after  { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:7px solid transparent; border-top-color:#c4b5fd; }
+#speech::before { content:''; position:absolute; top:calc(100% - 2px); left:50%; transform:translateX(-50%); border:7px solid transparent; border-top-color:white; z-index:1; }
+#char-img {
+  width: 60px;
+  transition: width 0.5s cubic-bezier(.34,1.56,.64,1);
+  animation: charBounce 1.6s ease-in-out infinite;
+}
+@keyframes charBounce { 0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);} }
+@keyframes charJoy { 0%{transform:scale(1) rotate(0);}20%{transform:scale(1.2) rotate(-8deg);}40%{transform:scale(1.2) rotate(8deg);}60%{transform:scale(1.15) translateY(-16px);}80%{transform:scale(1.1) rotate(-4deg);}100%{transform:scale(1) rotate(0);} }
+@keyframes charShiver { 0%,100%{transform:rotate(0);}20%{transform:translateX(-6px) rotate(-6deg);}40%{transform:translateX(6px) rotate(6deg);}60%{transform:translateX(-4px) rotate(-4deg);}80%{transform:translateX(4px) rotate(4deg);} }
+@keyframes charDance { 0%{transform:translateY(0) rotate(0);}25%{transform:translateY(-10px) rotate(-10deg);}50%{transform:translateY(0) rotate(10deg);}75%{transform:translateY(-6px) rotate(-6deg);}100%{transform:translateY(0) rotate(0);} }
+@keyframes charSpin { 0%{transform:rotate(0) scale(1);}50%{transform:rotate(180deg) scale(1.2);}100%{transform:rotate(360deg) scale(1);} }
+@keyframes charWiggle { 0%,100%{transform:rotate(-3deg);}50%{transform:rotate(3deg);} }
+@keyframes charListen { 0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-4px) rotate(2deg);} }
+
+#hearts { position:fixed; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:100; }
+.heart { position:absolute; font-size:22px; animation:fallHeart 1.8s ease-in forwards; }
+@keyframes fallHeart { 0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(20deg);opacity:0;} }
+
+.q-stage { width:100%; max-width:520px; overflow:visible; }
+.q-card {
+  background:#f3f0ff; border:1.5px solid #c4b5fd;
+  border-radius:16px; padding:16px 18px;
+  position:relative; width:100%;
+  transition:transform 0.5s cubic-bezier(.77,0,.18,1), opacity 0.5s;
+}
+.q-card.current  { transform:translateX(0);    opacity:1; }
+.q-card.incoming { transform:translateX(110%);  opacity:0; }
+.q-card.outgoing { transform:translateX(-110%); opacity:0; }
+
+.q-step { font-size:11px; font-weight:700; color:#9580e8; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
+.q-text { font-size:13px; font-weight:700; color:#1e1450; margin-bottom:12px; line-height:1.5; }
+.options { display:flex; flex-direction:column; gap:6px; }
+.opt-btn {
+  background:white; border:1.5px solid #c4b5fd; border-radius:12px;
+  padding:8px 12px; font-family:'Montserrat',sans-serif;
+  font-size:12px; font-weight:600; color:#3d3080;
+  cursor:pointer; text-align:left; transition:all 0.18s;
+}
+.opt-btn:hover:not(:disabled) { border-color:#6e5adc; background:#ede9fe; transform:translateX(4px); }
+.opt-btn.selected-good { background:#6e5adc; border-color:#6e5adc; color:white; }
+.opt-btn.selected-bad  { background:#e9d5ff; border-color:#9580e8; color:#3d3080; }
+.opt-btn:disabled { cursor:default; }
+
+.dots { display:flex; gap:8px; justify-content:center; margin:10px 0 14px; }
+.dot { width:8px; height:8px; border-radius:50%; background:#e9d5ff; transition:background 0.3s, transform 0.3s; }
+.dot.active { background:#6e5adc; transform:scale(1.3); }
+.dot.done   { background:#9580e8; }
+
+#phase2 { width:100%; max-width:520px; display:none; }
+.reflection-intro {
+  background:#1e1450; border-radius:16px;
+  padding:20px 22px; margin-bottom:20px; color:white;
+  font-size:13px; font-weight:500; line-height:1.6; text-align:center;
+}
+.reflection-intro strong { display:block; font-size:15px; font-weight:800; margin-bottom:8px; }
+
+.name-wrap { margin-bottom:18px; }
+.name-wrap label { font-size:13px; font-weight:700; color:#1e1450; display:block; margin-bottom:8px; }
+.name-wrap input {
+  width:100%; padding:12px 16px; border:1.5px solid #c4b5fd;
+  border-radius:12px; font-family:'Montserrat',sans-serif;
+  font-size:13px; color:#1e1450; outline:none; transition:border-color 0.2s;
+}
+.name-wrap input:focus { border-color:#6e5adc; }
+
+.privacy-note {
+  font-size:11px; font-weight:500; color:#9580e8;
+  margin-top:6px; line-height:1.5;
+}
+
+.blank-card { background:#f3f0ff; border:1.5px solid #c4b5fd; border-radius:16px; padding:16px 18px; margin-bottom:14px; }
+.blank-label { font-size:13px; font-weight:700; color:#1e1450; margin-bottom:10px; line-height:1.5; }
+.blank-label span { color:#6e5adc; font-style:italic; }
+.blank-input {
+  width:100%; padding:10px 14px; border:1.5px solid #c4b5fd;
+  border-radius:10px; font-family:'Montserrat',sans-serif;
+  font-size:12px; color:#1e1450; resize:vertical; min-height:70px;
+  outline:none; transition:border-color 0.2s; background:white;
+}
+.blank-input:focus { border-color:#6e5adc; }
+.blank-input::placeholder { color:#c4b5fd; }
+
+.checkin-btn {
+  width:100%; background:#6e5adc; color:white;
+  border:none; border-radius:50px; padding:14px;
+  font-family:'Montserrat',sans-serif; font-size:14px;
+  font-weight:700; cursor:pointer; margin-top:8px;
+  transition:transform 0.15s, background 0.2s;
+}
+.checkin-btn:hover { transform:translateY(-2px); background:#5b4bc4; }
+.checkin-btn:disabled { background:#c4b5fd; cursor:default; transform:none; }
+.error-msg { color:#dc2626; font-size:12px; font-weight:600; text-align:center; margin-top:10px; display:none; }
+
+#success {
+  display:none; width:100%; max-width:520px;
+  background:#1e1450; border-radius:20px;
+  padding:32px 24px; text-align:center; color:white; margin-top:8px;
+}
+#success h2 { font-size:18px; font-weight:800; margin-bottom:10px; }
+#success p  { font-size:13px; font-weight:500; line-height:1.7; opacity:0.88; }
+.restart-btn {
+  margin-top:18px; background:#6e5adc; color:white;
+  border:none; border-radius:50px; padding:12px 32px;
+  font-family:'Montserrat',sans-serif; font-size:13px;
+  font-weight:700; cursor:pointer; transition:transform 0.15s;
+}
+.restart-btn:hover { transform:translateY(-2px); }
+</style>
+</head>
+<body>
+
+<div id="hearts"></div>
+
+<h1>⚡ Stress Reflection</h1>
+<p class="subtitle">A quick honest check-in with yourself. No right or wrong answers.</p>
+
+<div class="top-area">
+  <div class="battery-wrap">
+    <div class="battery-tip"></div>
+    <div class="battery-outer">
+      <div class="battery-fill" id="batteryFill" style="height:50%"></div>
+    </div>
+    <div class="battery-pct" id="batteryPct">50%</div>
+    <div class="battery-label" id="batteryLabel">Neutral</div>
+  </div>
+  <div class="char-wrap">
+    <div id="speech">Let's check in 🤔</div>
+    <img id="char-img" src="data:image/png;base64,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" alt="character"/>
+  </div>
+</div>
+
+<div class="dots" id="dots"></div>
+<div class="q-stage" id="qStage"></div>
+
+<div id="phase2">
+  <div class="reflection-intro">
+    <strong>Now — let's go a little deeper 💜</strong>
+    Complete these sentences honestly. There are no right or wrong answers.
+  </div>
+
+  <div class="name-wrap">
+    <label>Your email address</label>
+    <input type="email" id="emailInput" placeholder="Enter your email to receive your reflection..."/>
+    <div class="privacy-note">Your email will only be used to send you this reflection. It will not be stored or shared with anyone.</div>
+  </div>
+
+  <div class="blank-card">
+    <div class="blank-label">The stressor that shows up most in my work life is <span>...</span></div>
+    <textarea class="blank-input" id="stimuli" placeholder="e.g. tight deadlines, unclear expectations, difficult conversations..."></textarea>
+  </div>
+  <div class="blank-card">
+    <div class="blank-label">My stress response usually looks like <span>...</span></div>
+    <textarea class="blank-input" id="response" placeholder="e.g. I go quiet, my heart races, I lose sleep, I snap at people..."></textarea>
+  </div>
+  <div class="blank-card">
+    <div class="blank-label">My go-to coping strategy is — and I think it is good/bad because <span>...</span></div>
+    <textarea class="blank-input" id="coping" placeholder="e.g. I work longer hours — bad because I never switch off..."></textarea>
+  </div>
+  <div class="blank-card">
+    <div class="blank-label">After this training one thing I want to change or start is <span>...</span></div>
+    <textarea class="blank-input" id="action" placeholder="e.g. I want to start taking proper lunch breaks..."></textarea>
+  </div>
+
+  <button class="checkin-btn" id="checkinBtn" onclick="submitReflection()">Complete my check-in 💜</button>
+  <div class="error-msg" id="errorMsg">Please fill in all fields including your email address.</div>
+</div>
+
+<div id="success">
+  <h2>💜 Thank you!</h2>
+  <p id="successText"></p>
+  <button class="restart-btn" onclick="restartAll()">Start again 🔄</button>
+</div>
+
+<script>
+(function(){ emailjs.init('C7_mp2-powoJErJfs'); })();
+
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwH9k1fwY0mI2nnkFzOPM4MrzwFImb6627IracxANEt4eTUFowFaXe1InbkIEr9NQ/exec';
+const SERVICE_ID  = 'service_humgged';
+const TEMPLATE_ID = 'template_v1kng9n';
+
+const QUESTIONS = [
+  {
+    text: "How often do you genuinely switch off from work at the end of the day?",
+    options: [
+      { text: "Most days — I have a clear routine",   score: 2 },
+      { text: "Sometimes — depends on the day",        score: 1 },
+      { text: "Rarely — work follows me home",         score: -1 },
+      { text: "Almost never",                          score: -2 },
+    ]
+  },
+  {
+    text: "How would you describe your energy levels right now?",
+    options: [
+      { text: "Good — focused and motivated",          score: 2 },
+      { text: "Okay — some days better than others",   score: 1 },
+      { text: "Low — tired most of the time",          score: -1 },
+      { text: "Very low — running on empty",           score: -2 },
+    ]
+  },
+  {
+    text: "How would you honestly rate your overall stress level right now?",
+    options: [
+      { text: "Low — calm and in control",             score: 2 },
+      { text: "Moderate — manageable but noticeable",  score: 1 },
+      { text: "High — affecting my daily life",        score: -1 },
+      { text: "Very high — really struggling",         score: -2 },
+    ]
+  },
+];
+
+const maxScore = QUESTIONS.reduce((a,q)=>a+Math.max(...q.options.map(o=>o.score)),0);
+const minScore = QUESTIONS.reduce((a,q)=>a+Math.min(...q.options.map(o=>o.score)),0);
+let G = { score:0, current:0, total:QUESTIONS.length, batteryPct:50 };
+
+function getPct(s){ return Math.round(((s-minScore)/(maxScore-minScore))*100); }
+function getColor(p){ return p>=70?'#6e5adc':p>=40?'#9580e8':p>=20?'#c4b5fd':'#e9d5ff'; }
+function getLabel(p){ return p>=70?'Well charged 💜':p>=40?'Moderate':p>=20?'Running low':'Needs charging!'; }
+function getSpeech(p){
+  const pool = p>=70?['You\'re doing great! 💜','Battery looking good! 🌟']:
+               p>=40?['Getting there 😊','You\'ve got this!']:
+               p>=20?['Take care of yourself 🤔','Be kind to yourself 💜']:
+                     ['You need a recharge 😟','Please rest soon 💜'];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function updateBattery(){
+  const pct=getPct(G.score); G.batteryPct=pct;
+  document.getElementById('batteryFill').style.height=pct+'%';
+  document.getElementById('batteryFill').style.background=getColor(pct);
+  document.getElementById('batteryPct').textContent=pct+'%';
+  document.getElementById('batteryLabel').textContent=getLabel(pct);
+  document.getElementById('speech').textContent=getSpeech(pct);
+  document.getElementById('char-img').style.width=(pct<30?70:58)+'px';
+}
+
+function animateChar(mode){
+  const img=document.getElementById('char-img');
+  img.style.animation='none'; void img.offsetHeight;
+  const joyAnims=['charJoy 0.6s ease','charDance 0.8s ease','charSpin 0.7s ease'];
+  const joyPick=joyAnims[Math.floor(Math.random()*joyAnims.length)];
+  if(mode==='joy')         img.style.animation=joyPick+', charBounce 1.6s ease-in-out 0.8s infinite';
+  else if(mode==='shiver') img.style.animation='charShiver 0.55s ease, charWiggle 1.2s ease-in-out 0.55s infinite';
+  else                     img.style.animation='charBounce 1.6s ease-in-out infinite';
+}
+
+function spawnHearts(){
+  const c=document.getElementById('hearts');
+  ['💜','❤️','💖','✨','💗'].forEach((h,i)=>{
+    setTimeout(()=>{
+      const el=document.createElement('span'); el.className='heart'; el.textContent=h;
+      el.style.left=(5+Math.random()*90)+'%'; el.style.top='-30px';
+      c.appendChild(el); setTimeout(()=>el.remove(),2000);
+    },i*180);
+  });
+}
+
+function buildDots(){
+  const container=document.getElementById('dots'); container.innerHTML='';
+  for(let i=0;i<G.total;i++){
+    const d=document.createElement('div'); d.className='dot'; d.id='dot-'+i;
+    container.appendChild(d);
+  }
+  updateDots();
+}
+
+function updateDots(){
+  for(let i=0;i<G.total;i++){
+    const d=document.getElementById('dot-'+i);
+    if(!d) continue;
+    d.className='dot'+(i<G.current?' done':i===G.current?' active':'');
+  }
+}
+
+function buildQuestion(index){
+  const stage=document.getElementById('qStage');
+  const q=QUESTIONS[index];
+  const old=stage.querySelector('.current');
+  if(old){ old.classList.remove('current'); old.classList.add('outgoing'); setTimeout(()=>old.remove(),500); }
+  const card=document.createElement('div'); card.className='q-card incoming';
+  const step=document.createElement('div'); step.className='q-step'; step.textContent='Question '+(index+1)+' of '+G.total;
+  card.appendChild(step);
+  const qText=document.createElement('div'); qText.className='q-text'; qText.textContent=q.text;
+  card.appendChild(qText);
+  const opts=document.createElement('div'); opts.className='options';
+  q.options.forEach(opt=>{
+    const btn=document.createElement('button'); btn.className='opt-btn'; btn.textContent=opt.text;
+    btn.addEventListener('click',()=>handleAnswer(opt.score,btn,opts));
+    opts.appendChild(btn);
+  });
+  card.appendChild(opts);
+  stage.appendChild(card);
+  
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ card.classList.remove('incoming'); card.classList.add('current'); }));
+  updateDots();
+}
+
+const Q_SPEECHES = [
+  { good: ["Great! Switching off is a superpower 💜","Love that for you! 🌟","That routine is gold!"], bad: ["Hmm, work follows you home? 😟","Let's work on that boundary 💜","Your evenings belong to you!"] },
+  { good: ["Glowing! Keep that energy 🌟","You're charged up! 💪","Love to hear it! 💜"], bad: ["Low energy is a signal 🤔","Your body is talking — listen 💜","Let's recharge you! ⚡"] },
+  { good: ["Calm and in control — beautiful 💜","That's the goal right there! 🌟","You're doing something right!"], bad: ["I hear you. That's a lot 💜","You're not alone in this 🤗","This reflection is for YOU 💜"] },
+];
+
+function handleAnswer(score,btn,opts){
+  opts.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+  btn.classList.add(score>=1?'selected-good':'selected-bad');
+  G.score+=score; G.answered=(G.answered||0)+1;
+  updateBattery();
+  const speeches = Q_SPEECHES[G.current] || Q_SPEECHES[0];
+  const pool = score>=1 ? speeches.good : speeches.bad;
+  const msg = pool[Math.floor(Math.random()*pool.length)];
+  document.getElementById('speech').textContent = msg;
+  if(score>=1){spawnHearts();animateChar('joy');}
+  else{animateChar('shiver');}
+  setTimeout(()=>{
+    G.current++;
+    if(G.current<G.total){ buildQuestion(G.current); animateChar('bounce'); }
+    else{ setTimeout(showPhase2,400); }
+  },900);
+}
+
+function showPhase2(){
+  const stage=document.getElementById('qStage');
+  const old=stage.querySelector('.current');
+  if(old){ old.classList.remove('current'); old.classList.add('outgoing'); setTimeout(()=>old.remove(),500); }
+  document.getElementById('dots').style.display='none';
+  document.getElementById('phase2').style.display='block';
+  const pct=G.batteryPct;
+  document.getElementById('speech').textContent=pct>=70?'I\'m all ears! 💜':pct>=40?'Tell me everything 🤗':pct>=20?'I\'m right here with you 💜':'You are so brave for doing this 💜';
+  animateChar('bounce');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function submitReflection(){
+  const email   =document.getElementById('emailInput').value.trim();
+  const stimuli =document.getElementById('stimuli').value.trim();
+  const response=document.getElementById('response').value.trim();
+  const coping  =document.getElementById('coping').value.trim();
+  const action  =document.getElementById('action').value.trim();
+  const errEl   =document.getElementById('errorMsg');
+
+  if(!email||!stimuli||!response||!coping||!action){ errEl.style.display='block'; return; }
+  errEl.style.display='none';
+
+  const btn=document.getElementById('checkinBtn');
+  btn.disabled=true; btn.textContent='Sending... 💜';
+
+  // Send email via EmailJS
+  emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+    to_email: email,
+    battery:  G.batteryPct + '%',
+    stimuli:  stimuli,
+    response: response,
+    coping:   coping,
+    action:   action
+  }, 'C7_mp2-powoJErJfs').then(function(res){
+    console.log('EmailJS success:', res.status, res.text);
+    fetch(SHEET_URL,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ email, battery: G.batteryPct+'%' })
+    });
+    showSuccess(email);
+  }).catch(function(err){
+    console.error('EmailJS error status:', err.status);
+    console.error('EmailJS error text:', err.text);
+    alert('Email error: ' + err.status + ' - ' + err.text);
+    fetch(SHEET_URL,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ email, battery: G.batteryPct+'%' })
+    });
+  });
+}
+
+function showSuccess(email){
+  document.getElementById('phase2').style.display='none';
+  const pct=G.batteryPct;
+  let text;
+  if(pct>=70)      text='Your battery is in great shape. Keep protecting your energy — it is one of your most valuable assets. Check your inbox for your personal reflection. 🌟';
+  else if(pct>=40) text='You have good awareness. Use what you noticed today to make one small change this week. Your reflection has been sent to your inbox. 💪';
+  else if(pct>=20) text='Your battery needs some attention. Start with one small act of recovery today — you deserve it. Check your inbox for your personal reflection. 💜';
+  else             text='It takes real courage to be this honest. Please reach out to someone you trust or your HR department — you do not have to manage this alone. Your reflection has been sent to your inbox. 💜';
+  document.getElementById('successText').textContent=text;
+  document.getElementById('success').style.display='block';
+  spawnHearts(); animateChar('joy');
+  document.getElementById('success').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function restartAll(){
+  G={score:0,current:0,total:QUESTIONS.length,batteryPct:50,answered:0};
+  document.getElementById('success').style.display='none';
+  document.getElementById('phase2').style.display='none';
+  document.getElementById('dots').style.display='flex';
+  document.getElementById('emailInput').value='';
+  ['stimuli','response','coping','action'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('checkinBtn').disabled=false;
+  document.getElementById('checkinBtn').textContent='Complete my check-in 💜';
+  updateBattery(); animateChar('bounce');
+  buildDots(); buildQuestion(0);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+buildDots();
+buildQuestion(0);
+updateBattery();
+animateChar('bounce');
+</script>
+</body>
+</html>
